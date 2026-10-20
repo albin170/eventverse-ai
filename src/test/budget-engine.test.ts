@@ -7,6 +7,7 @@ import {
   recalculateItemsForGuestCount,
   generateSavingsSuggestions,
   compareBudgetPlans,
+  formatCurrency,
 } from '@/features/budget/engine';
 import { BudgetItem } from '@/types';
 
@@ -137,6 +138,20 @@ describe('Budget Engine - Deterministic Financial Calculations', () => {
       expect(summary.remainingBudget).toBe(-9900);
       expect(summary.isOverBudget).toBe(true);
     });
+
+    it('routes unknown categories to miscellaneous in breakdown', () => {
+      const customItem = {
+        id: 'cust-1',
+        name: 'Custom Drone Display',
+        category: 'unrecognized_custom_category' as any,
+        estimatedCost: 750,
+        isPerPerson: false,
+        priority: 'nice_to_have' as const,
+        confirmed: false,
+      };
+      const summary = calculateBudgetSummary([customItem], 5000, 50, 0);
+      expect(summary.categoryBreakdown.miscellaneous).toBe(750);
+    });
   });
 
   describe('recalculateItemsForGuestCount', () => {
@@ -243,6 +258,51 @@ describe('Budget Engine - Deterministic Financial Calculations', () => {
       expect(comp.diffUtilization).toBe(-15);
       expect(comp.isTargetMoreEconomical).toBe(true);
       expect(comp.costVariancePercentage).toBe(-16.67);
+    });
+
+    it('handles zero base budget safely in costVariancePercentage', () => {
+      const base = calculateBudgetSummary([], 10000, 100, 10);
+      base.totalEstimatedCost = 0;
+      const target = calculateBudgetSummary([], 10000, 100, 10);
+      target.totalEstimatedCost = 500;
+
+      const comp = compareBudgetPlans(base, target);
+      expect(comp.costVariancePercentage).toBe(0);
+    });
+  });
+
+  describe('formatCurrency fallback and optional savings target reached', () => {
+    it('falls back safely for invalid currency codes', () => {
+      const formatted = formatCurrency(1500, 'ILLEGAL_CURRENCY_CODE_123');
+      expect(formatted).toContain('ILLEGAL_CURRENCY_CODE_123');
+      expect(formatted).toContain('1,500');
+    });
+
+    it('exits early when optional items alone satisfy reduction target', () => {
+      const items: BudgetItem[] = [
+        {
+          id: 'opt1',
+          name: 'Extra fireworks',
+          category: 'decor',
+          estimatedCost: 1000,
+          isPerPerson: false,
+          priority: 'optional',
+          confirmed: false,
+        },
+        {
+          id: 'opt2',
+          name: 'Ice sculpture',
+          category: 'decor',
+          estimatedCost: 500,
+          isPerPerson: false,
+          priority: 'optional',
+          confirmed: false,
+        },
+      ];
+      const suggestions = generateSavingsSuggestions(items, toCents(600), 100);
+      expect(suggestions.length).toBe(1);
+      expect(suggestions[0].itemId).toBe('opt1');
+      expect(suggestions[0].potentialSavings).toBe(600);
     });
   });
 });

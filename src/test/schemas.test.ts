@@ -3,6 +3,7 @@ import { EventFormSchema } from '../schemas/event.schema';
 import { BudgetItemSchema, BudgetPlanSchema } from '../schemas/budget.schema';
 import { TimelineTaskSchema } from '../schemas/timeline.schema';
 import { VendorSchema } from '../schemas/vendor.schema';
+import { VenueStudioConfigSchema } from '../schemas/venue.schema';
 
 describe('Zod Schema Validations', () => {
   it('validates a compliant EventForm input', () => {
@@ -116,5 +117,32 @@ describe('Zod Schema Validations', () => {
       userNotes: 'Quoted for 15 table centerpieces.',
     };
     expect(VendorSchema.safeParse(sampleVendor).success).toBe(true);
+  });
+
+  it('validates 3D venue studio configuration schema', () => {
+    const defaultConfig = VenueStudioConfigSchema.parse({});
+    expect(defaultConfig.layout).toBe('banquet');
+    expect(defaultConfig.tableCount).toBe(8);
+    expect(defaultConfig.hasDanceFloor).toBe(true);
+
+    const customConfig = {
+      layout: 'cocktail',
+      lighting: 'cyber_cyan',
+      tableCount: 16,
+      stageSize: 'large',
+      hasDanceFloor: false,
+      hasPhotoBooth: true,
+      themeColor: '#EC4899',
+      accentColor: '#3B82F6',
+      ambientLightIntensity: 1.2,
+      spotlightIntensity: 2.0,
+    };
+    expect(VenueStudioConfigSchema.safeParse(customConfig).success).toBe(true);
+
+    const invalidConfig = {
+      layout: 'unsupported_layout',
+      tableCount: 100, // max 24
+    };
+    expect(VenueStudioConfigSchema.safeParse(invalidConfig).success).toBe(false);
   });
 });

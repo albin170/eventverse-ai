@@ -17,7 +17,8 @@
     "audit": "npm audit --audit-level=critical"
   },
   "overrides": {
-    "braces": "^3.0.3"
+    "braces": "^3.0.3",
+    "tinypool": "^2.2.0"
   },
   "dependencies": {
     "react": "^18.3.1",
