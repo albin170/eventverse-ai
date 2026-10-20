@@ -125,6 +125,9 @@ export function recalculateTaskDates(
   });
 }
 
+export const shiftTaskDatesForMasterEvent = recalculateTaskDates;
+
+
 /**
  * Calculates overall timeline progress percentage (0-100).
  */

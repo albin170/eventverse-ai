@@ -1,71 +1,46 @@
 import { z } from 'zod';
 
-export const BudgetCategoryEnum = z.enum([
-  'venue_setup',
-  'catering_bar',
-  'decor_florals',
-  'media_production',
+export const ExpenseCategorySchema = z.enum([
+  'venue',
+  'catering',
+  'decor',
   'entertainment',
-  'attire_styling',
-  'invitations_favors',
-  'logistics_security'
+  'photography',
+  'attire',
+  'logistics',
+  'stationery',
+  'contingency',
+  'miscellaneous',
 ]);
 
-export type BudgetCategory = z.infer<typeof BudgetCategoryEnum>;
-
-export const CategoryLabels: Record<BudgetCategory, string> = {
-  venue_setup: 'Venue & Staging',
-  catering_bar: 'Catering & Beverages',
-  decor_florals: 'Decor & Florals',
-  media_production: 'Photography & Film',
-  entertainment: 'Music & Entertainment',
-  attire_styling: 'Attire & Styling',
-  invitations_favors: 'Invitations & Favors',
-  logistics_security: 'Logistics & Security'
-};
+export const ItemPrioritySchema = z.enum(['must_have', 'nice_to_have', 'optional']);
+export const PaymentStatusSchema = z.enum(['unpaid', 'deposit_paid', 'fully_paid']);
 
 export const BudgetItemSchema = z.object({
   id: z.string().min(1),
-  categoryId: BudgetCategoryEnum,
-  name: z.string().min(1, 'Item name is required').max(100),
+  eventId: z.string().min(1).optional(),
+  ownerId: z.string().min(1).optional(),
+  name: z.string().min(1, 'Item name is required'),
+  category: z.string().optional(),
+  categoryId: z.string().optional(),
+  estimatedCost: z.number().nonnegative('Estimated cost must be positive or zero').optional(),
+  amount: z.number().nonnegative().optional(),
+  actualCost: z.number().nonnegative().optional(),
+  paidAmount: z.number().nonnegative().default(0),
+  paymentStatus: PaymentStatusSchema.default('unpaid'),
   isPerPerson: z.boolean().default(false),
-  amount: z.number().nonnegative('Amount cannot be negative').max(10000000),
-  priority: z.enum(['must_have', 'nice_to_have', 'optional']).default('must_have'),
-  isConfirmedQuote: z.boolean().default(false),
-  vendorName: z.string().optional(),
-  notes: z.string().max(250).optional(),
+  unitCost: z.number().nonnegative().optional(),
+  priority: ItemPrioritySchema.default('nice_to_have'),
+  confirmed: z.boolean().default(false),
+  isConfirmedQuote: z.boolean().optional(),
+  vendorId: z.string().optional(),
+  dueDate: z.string().optional(),
+  notes: z.string().optional(),
 });
 
-export type BudgetItem = z.infer<typeof BudgetItemSchema>;
-
 export const BudgetPlanSchema = z.object({
-  eventId: z.string(),
-  totalBudget: z.number().positive(),
+  eventId: z.string().min(1).optional(),
+  totalBudget: z.number().nonnegative('Total budget must be positive or zero'),
   contingencyPercentage: z.number().min(0).max(30).default(10),
   items: z.array(BudgetItemSchema),
 });
-
-export type BudgetPlan = z.infer<typeof BudgetPlanSchema>;
-
-export interface BudgetCalculationResult {
-  totalBudgetMinor: number;
-  totalExpensesMinor: number;
-  fixedExpensesMinor: number;
-  perPersonExpensesMinor: number;
-  contingencyMinor: number;
-  grandTotalMinor: number;
-  remainingMinor: number;
-  utilizationPercentage: number;
-  isOverBudget: boolean;
-  overBudgetMinor: number;
-  costPerGuestMinor: number;
-  categoryBreakdownMinor: Record<BudgetCategory, number>;
-  // Human readable major units
-  totalBudget: number;
-  totalExpenses: number;
-  contingencyAmount: number;
-  grandTotal: number;
-  remainingBudget: number;
-  costPerGuest: number;
-  categoryBreakdown: Record<BudgetCategory, number>;
-}

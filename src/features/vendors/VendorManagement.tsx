@@ -90,7 +90,7 @@ export const VendorManagement: React.FC<VendorManagementProps> = ({
   const filteredVendors = vendors.filter((v) => {
     const matchesSearch =
       v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      v.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (v.location || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       v.category.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || v.category === selectedCategory;
     const matchesPrice = selectedPriceTier === 'all' || v.priceRange === selectedPriceTier;
@@ -289,7 +289,7 @@ export const VendorManagement: React.FC<VendorManagementProps> = ({
                 <div>
                   <span className="text-slate-500">Starting Price:</span>{' '}
                   <strong className="text-white">
-                    {currency} {vendor.estimatedStartingPrice.toLocaleString()}
+                    {currency} {(vendor.estimatedStartingPrice ?? 0).toLocaleString()}
                   </strong>
                 </div>
               </div>
@@ -530,11 +530,11 @@ export const VendorManagement: React.FC<VendorManagementProps> = ({
                           {v.priceRange}
                         </td>
                         <td className="px-3 py-3">
-                          {currency} {v.estimatedStartingPrice.toLocaleString()}
+                          {currency} {(v.estimatedStartingPrice ?? 0).toLocaleString()}
                         </td>
                         <td className="px-3 py-3">
                           <span className="capitalize font-medium text-violet-300">
-                            {v.enquiryStatus.replace('_', ' ')}
+                            {(v.enquiryStatus || 'not_contacted').replace('_', ' ')}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-slate-400 text-[11px] max-w-xs">

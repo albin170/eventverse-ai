@@ -27,6 +27,8 @@ export function sanitizeCsvCell(value: unknown): string {
   return `"${escaped}"`;
 }
 
+export const sanitizeSpreadsheetCell = sanitizeCsvCell;
+
 /**
  * Generates an RFC 4180 compliant CSV string from an array of objects.
  */

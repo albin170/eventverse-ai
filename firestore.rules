@@ -1,0 +1,90 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.role == 'admin' || request.auth.token.email.matches('.*@eventverse\\.admin$'));
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated() && request.auth.uid == userId && request.resource.data.role == 'user';
+      allow update: if isOwner(userId) && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'status']))
+                    || isAdmin();
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    // Events collection
+    match /events/{eventId} {
+      allow read: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow delete: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || isAdmin());
+    }
+
+    // Expenses collection
+    match /expenses/{expenseId} {
+      allow read, write: if isAuthenticated() && 
+        (resource == null || resource.data.ownerId == request.auth.uid || isAdmin());
+    }
+
+    // Tasks collection
+    match /tasks/{taskId} {
+      allow read, write: if isAuthenticated() && 
+        (resource == null || resource.data.ownerId == request.auth.uid || isAdmin());
+    }
+
+    // Guests collection
+    match /guests/{guestId} {
+      allow read, write: if isAuthenticated() && 
+        (resource == null || resource.data.ownerId == request.auth.uid || isAdmin());
+    }
+
+    // Vendor Profiles
+    match /vendorProfiles/{vendorId} {
+      // Public / verified users can read verified vendors
+      allow read: if resource.data.verificationStatus == 'verified' || isAdmin();
+      // Only administrators can create, update, or suspend vendor profiles
+      allow write: if isAdmin();
+    }
+
+    // Vendor Enquiries
+    match /vendorEnquiries/{enquiryId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // 3D Venue Designs
+    match /venueDesigns/{designId} {
+      allow read, write: if isAuthenticated() && 
+        (resource == null || resource.data.ownerId == request.auth.uid || isAdmin());
+    }
+
+    // Audit Logs
+    match /auditLogs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated();
+      // Audit logs are strictly immutable: no updates or deletes allowed
+      allow update, delete: if false;
+    }
+
+    // Platform Settings
+    match /platformSettings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

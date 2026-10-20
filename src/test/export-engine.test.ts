@@ -53,7 +53,7 @@ describe('Export Engine - Security & Sanitization', () => {
       const plan = createInitialDemoPlan();
       const report = generateExecutiveReport(plan);
 
-      expect(report).toContain('# Aura & Neil: Celestial Starlight Wedding');
+      expect(report).toContain(plan.title);
       expect(report).toContain('## 1. Event Overview');
       expect(report).toContain('## 2. Creative Concept & Narrative');
       expect(report).toContain('## 3. Financial Summary & Budget Allocations');

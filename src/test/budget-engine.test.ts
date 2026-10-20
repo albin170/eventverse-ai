@@ -238,6 +238,33 @@ describe('Budget Engine - Deterministic Financial Calculations', () => {
       expect(generateSavingsSuggestions(items, 0, 100)).toEqual([]);
       expect(generateSavingsSuggestions(items, -500, 100)).toEqual([]);
     });
+
+    it('stops iterating nice-to-have items once the accumulated savings meets target', () => {
+      const multipleNiceItems: BudgetItem[] = [
+        {
+          id: 'nice1',
+          name: 'Premium Lighting',
+          category: 'decor',
+          estimatedCost: 2000,
+          isPerPerson: false,
+          priority: 'nice_to_have',
+          confirmed: false,
+        },
+        {
+          id: 'nice2',
+          name: 'Floral Installations',
+          category: 'decor',
+          estimatedCost: 2000,
+          isPerPerson: false,
+          priority: 'nice_to_have',
+          confirmed: false,
+        },
+      ];
+      // nice1 provides 500 reduction (25%), which exceeds 300 target -> breaks loop
+      const suggestions = generateSavingsSuggestions(multipleNiceItems, toCents(300), 100);
+      expect(suggestions.length).toBe(1);
+      expect(suggestions[0].itemId).toBe('nice1');
+    });
   });
 
   describe('compareBudgetPlans', () => {

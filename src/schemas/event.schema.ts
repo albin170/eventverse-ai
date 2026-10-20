@@ -1,43 +1,101 @@
 import { z } from 'zod';
 
-export const EventTypeEnum = z.enum([
+export const EventCategorySchema = z.enum([
   'wedding',
   'birthday',
   'anniversary',
   'college_fest',
+  'corporate',
   'community',
-  'custom'
+  'custom',
 ]);
-export type EventType = z.infer<typeof EventTypeEnum>;
 
-export const CurrencyCodeEnum = z.enum(['USD', 'EUR', 'GBP', 'INR', 'CAD', 'AUD']);
-export type CurrencyCode = z.infer<typeof CurrencyCodeEnum>;
+export const CurrencyCodeSchema = z.enum(['USD', 'EUR', 'GBP', 'INR', 'CAD', 'AUD']);
+export const EventStatusSchema = z.enum(['planning', 'confirmed', 'archived', 'cancelled']);
+export const ModerationStatusSchema = z.enum(['approved', 'flagged', 'suspended']);
 
-export const PriorityEnum = z.enum(['budget', 'experience', 'luxury', 'entertainment', 'culinary']);
-export type EventPriority = z.infer<typeof PriorityEnum>;
-
-export const EventFormSchema = z.object({
-  title: z.string().min(3, 'Event title must be at least 3 characters').max(100),
-  eventType: EventTypeEnum,
-  eventDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Valid date in YYYY-MM-DD required'),
-  location: z.string().min(2, 'Location is required').max(120),
-  guestCount: z.number().int().min(1, 'At least 1 guest required').max(50000, 'Guest count exceeds maximum'),
-  totalBudget: z.number().positive('Budget must be greater than zero').max(100000000, 'Budget exceeds supported limit'),
-  currency: CurrencyCodeEnum.default('USD'),
-  theme: z.string().min(2, 'Theme description required').max(100),
-  primaryColor: z.string().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, 'Valid hex color code required'),
-  secondaryColor: z.string().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, 'Valid hex color code required'),
-  culturalPreferences: z.string().max(250).default(''),
-  dietaryRequirements: z.array(z.string()).default([]),
+export const EventRecordSchema = z.object({
+  id: z.string().min(1),
+  ownerId: z.string().min(1),
+  ownerEmail: z.string().email().optional(),
+  title: z.string().min(2, 'Title must be at least 2 characters').max(100),
+  category: EventCategorySchema,
+  eventDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Valid event date required (YYYY-MM-DD)'),
+  eventTime: z.string().optional(),
+  location: z.string().min(2, 'Location is required'),
+  guestCount: z.number().int().min(1, 'Guest count must be at least 1').max(50000),
+  totalBudget: z.number().positive('Total budget must be greater than zero'),
+  currency: CurrencyCodeSchema.default('USD'),
+  contingencyPercentage: z.number().min(0).max(30).default(10),
+  theme: z.string().min(1, 'Theme is required'),
+  colorPalette: z.array(z.string()).min(1, 'At least one color required'),
+  cateringPreferences: z.string().default('Standard catering'),
   accessibilityRequirements: z.array(z.string()).default([]),
-  priority: PriorityEnum.default('experience'),
-  notes: z.string().max(1000).default(''),
+  notes: z.string().max(2000).optional(),
+  priorityPreferences: z.array(z.string()).default([]),
+  status: EventStatusSchema.default('planning'),
+  moderationStatus: ModerationStatusSchema.default('approved'),
+  moderationReason: z.string().optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
 });
 
-export type EventFormData = z.infer<typeof EventFormSchema>;
+export const EventFormSchema = z.object({
+  title: z.string().min(2, 'Event title must be at least 2 characters').max(100),
+  category: EventCategorySchema.optional(),
+  eventType: EventCategorySchema.optional(),
+  eventDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be formatted as YYYY-MM-DD'),
+  eventTime: z.string().optional(),
+  location: z.string().min(2, 'Location is required'),
+  guestCount: z.coerce.number().int().min(1, 'At least 1 guest required').max(50000),
+  totalBudget: z.coerce.number().positive('Budget must be greater than zero').max(100000000),
+  currency: CurrencyCodeSchema.default('USD'),
+  contingencyPercentage: z.coerce.number().min(0).max(30).default(10),
+  theme: z.string().min(1, 'Theme is required'),
+  primaryColor: z.string().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, 'Must be valid hex code'),
+  secondaryColor: z.string().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, 'Must be valid hex code'),
+  cateringPreferences: z.string().default('Standard'),
+  culturalPreferences: z.string().optional(),
+  dietaryRequirements: z.array(z.string()).default([]),
+  accessibilityRequirements: z.array(z.string()).default([]),
+  priority: z.string().optional(),
+  notes: z.string().max(2000).optional(),
+}).refine((data) => data.category || data.eventType, {
+  message: 'Category or eventType must be specified',
+  path: ['category'],
+});
 
-export interface EventModel extends EventFormData {
-  id: string;
-  createdAt: string;
-  updatedAt: string;
-}
+export const EventPlanSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  eventType: EventCategorySchema.default('wedding'),
+  eventDate: z.string(),
+  location: z.string().optional(),
+  guestCount: z.number().int().positive(),
+  totalBudget: z.number().positive(),
+  currency: CurrencyCodeSchema.default('USD'),
+  contingencyPercentage: z.number().min(0).max(30).default(10),
+  theme: z.string(),
+  colorPalette: z.array(z.string()).default([]),
+  culturalPreferences: z.string().default(''),
+  dietaryRequirements: z.array(z.string()).default([]),
+  venuePreferences: z.string().default(''),
+  accessibilityRequirements: z.array(z.string()).default([]),
+  priorities: z.array(z.string()).default([]),
+  restrictions: z.array(z.string()).default([]),
+  notes: z.string().optional(),
+  conceptSummary: z.string().default(''),
+  decorIdeas: z.array(z.string()).default([]),
+  entertainmentIdeas: z.array(z.string()).default([]),
+  menuSuggestions: z.array(z.string()).default([]),
+  costSavingTips: z.array(z.string()).default([]),
+  riskContingencies: z.array(z.object({ risk: z.string(), mitigation: z.string() })).default([]),
+  budgetItems: z.array(z.any()).default([]),
+  tasks: z.array(z.any()).default([]),
+  vendors: z.array(z.any()).default([]),
+  venue3D: z.any().optional(),
+  scenarios: z.array(z.any()).default([]),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+

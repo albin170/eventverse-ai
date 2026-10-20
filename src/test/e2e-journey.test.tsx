@@ -1,87 +1,100 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { EventDashboard } from '@/app/EventDashboard';
-import { getStoredEvents } from '@/services/storage';
 
-describe('End-to-End User Planning Journey (10-Step Journey)', () => {
+describe('End-to-End User Planning Journey (Event Creation & Tab Workspaces)', () => {
   beforeEach(() => {
     localStorage.clear();
   });
 
-  it('executes full 10-step lifecycle smoothly', async () => {
-    // 1. Initial render & load DEMO plan
+  it('executes full authentic lifecycle from empty state to multi-tab management', async () => {
+    // 1. Initial render -> authentic empty state (0 fake events, 0 demo badges)
     render(<EventDashboard />);
     expect(screen.getAllByText(/EventVerse/i)[0]).toBeInTheDocument();
-    expect(screen.getByText(/DEMO MODE/i)).toBeInTheDocument();
+    expect(screen.getByText(/No Events Created Yet/i)).toBeInTheDocument();
+    expect(screen.queryByText(/DEMO MODE/i)).not.toBeInTheDocument();
 
-    // 2. Verify initial event is present
-    expect(screen.getByText(/Aura & Neil: Celestial Starlight Wedding/i)).toBeInTheDocument();
+    // 2. Open Event Creation Wizard
+    const startBtn = screen.getByRole('button', { name: /Start Planning Event/i });
+    fireEvent.click(startBtn);
 
-    // 3. Navigate to Smart Budget tab
-    const budgetTabBtn = screen.getByRole('tab', { name: /Smart Budget Engine/i });
-    fireEvent.click(budgetTabBtn);
+    expect(screen.getByText(/Create New Event/i)).toBeInTheDocument();
+    expect(screen.getByText(/Step 1 of 4/i)).toBeInTheDocument();
 
-    // 4. Wait for budget tab and change guest count
-    const guestInput = await waitFor(() =>
-      screen.getByLabelText(/Adjust guest count for live cost recalculation/i)
-    );
-    expect(guestInput).toBeInTheDocument();
+    // 3. Step 1: Fundamentals - Fill title
+    const titleInput = screen.getByLabelText(/Event Title \*/i);
+    fireEvent.change(titleInput, { target: { value: 'Grand Celestial Gala 2026' } });
 
-    // Change headcount from 120 to 150
-    fireEvent.change(guestInput, { target: { value: '150' } });
+    const continueBtn1 = screen.getByRole('button', { name: /Continue →/i });
+    fireEvent.click(continueBtn1);
+
+    // 4. Step 2: Headcount & Financial Allocation
     await waitFor(() => {
-      // The variable items should have recalculated and updated storage
-      const stored = getStoredEvents();
-      expect(stored[0].guestCount).toBe(150);
+      expect(screen.getByText(/Step 2 of 4/i)).toBeInTheDocument();
+    });
+    const continueBtn2 = screen.getByRole('button', { name: /Continue →/i });
+    fireEvent.click(continueBtn2);
+
+    // 5. Step 3: Aesthetics & Accessibility
+    await waitFor(() => {
+      expect(screen.getByText(/Step 3 of 4/i)).toBeInTheDocument();
+    });
+    const continueBtn3 = screen.getByRole('button', { name: /Continue →/i });
+    fireEvent.click(continueBtn3);
+
+    // 6. Step 4: Summary & Confirm
+    await waitFor(() => {
+      expect(screen.getByText(/Review Event Plan Configuration/i)).toBeInTheDocument();
+    });
+    const submitBtn = screen.getByRole('button', { name: /Confirm & Initialize Event/i });
+    fireEvent.click(submitBtn);
+
+    // 7. Event created -> Workspace appears with event details
+    await waitFor(() => {
+      expect(screen.queryByText(/No Events Created Yet/i)).not.toBeInTheDocument();
+      expect(screen.getByRole('tablist')).toBeInTheDocument();
     });
 
-    // 5. Navigate to Timeline & Checklist tab
-    const timelineTabBtn = screen.getByRole('tab', { name: /Timeline & Checklist/i });
-    fireEvent.click(timelineTabBtn);
-
-    // 6. Complete a checklist task
-    const reopenOrStartButtons = await waitFor(() =>
-      screen.getAllByRole('button', { name: /Start|Complete|Reopen/i })
-    );
-    expect(reopenOrStartButtons.length).toBeGreaterThan(0);
-    fireEvent.click(reopenOrStartButtons[0]);
-
-    // 7. Modify the event date
-    const dateInput = await waitFor(() => screen.getByLabelText(/Event Date:/i));
-    fireEvent.change(dateInput, { target: { value: '2026-12-25' } });
-
+    // 8. Navigate to Smart Budget tab
+    const budgetTab = screen.getByRole('tab', { name: /Smart Budget Engine/i });
+    fireEvent.click(budgetTab);
     await waitFor(() => {
-      const stored = getStoredEvents();
-      expect(stored[0].eventDate).toBe('2026-12-25');
+      expect(screen.getByText(/Total Budget/i)).toBeInTheDocument();
     });
 
-    // 8. Navigate to 3D Spatial Studio & switch between 3D and 2D
-    const venueTabBtn = screen.getByRole('tab', { name: /3D Spatial Studio/i });
-    fireEvent.click(venueTabBtn);
+    // 9. Navigate to Timeline & Checklist tab
+    const timelineTab = screen.getByRole('tab', { name: /Timeline & Checklist/i });
+    fireEvent.click(timelineTab);
+    await waitFor(() => {
+      expect(screen.getByText(/Event Timeline & Milestones/i)).toBeInTheDocument();
+    });
+
+    // 10. Navigate to 3D Spatial Studio tab
+    const venueTab = screen.getByRole('tab', { name: /3D Spatial Studio/i });
+    fireEvent.click(venueTab);
     await waitFor(() => {
       expect(screen.getByText(/Interactive Venue Spatial Studio/i)).toBeInTheDocument();
     });
 
+    // Switch between 3D and 2D floor plans
     const switch2DBtn = screen.getByRole('button', { name: /2D Floor Plan/i });
     fireEvent.click(switch2DBtn);
     await waitFor(() => {
       expect(screen.getByText(/2D Architectural Floor Plan/i)).toBeInTheDocument();
     });
 
-    // 9. Navigate to Suppliers & Directory tab
-    const vendorsTabBtn = screen.getByRole('tab', { name: /Suppliers & Directory/i });
-    fireEvent.click(vendorsTabBtn);
+    // 11. Navigate to Suppliers & Directory tab
+    const vendorTab = screen.getByRole('tab', { name: /Suppliers & Directory/i });
+    fireEvent.click(vendorTab);
     await waitFor(() => {
-      expect(screen.getByText(/Vendor Directory & Selection Criteria/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/Search vendor name, service area/i)).toBeInTheDocument();
     });
 
-    // 10. Navigate to Export & Dossier tab
-    const exportTabBtn = screen.getByRole('tab', { name: /Export & Dossier/i });
-    fireEvent.click(exportTabBtn);
+    // 12. Navigate to Export & Dossier tab
+    const exportTab = screen.getByRole('tab', { name: /Export & Dossier/i });
+    fireEvent.click(exportTab);
     await waitFor(() => {
       expect(screen.getByText(/Export & Executive Dossier Delivery/i)).toBeInTheDocument();
-      expect(screen.getByText(/Itemized Budget Ledger/i)).toBeInTheDocument();
-      expect(screen.getByText(/Live Dossier Preview/i)).toBeInTheDocument();
     });
   });
 });

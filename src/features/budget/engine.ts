@@ -61,6 +61,8 @@ export function calculateBudgetSummary(
   };
 
   let totalEstimatedCents = 0;
+  let totalActualCents = 0;
+  let totalPaidCents = 0;
   let totalConfirmedCents = 0;
 
   const categoryBreakdownCents: Record<ExpenseCategory, number> = {
@@ -82,9 +84,14 @@ export function calculateBudgetSummary(
 
     totalEstimatedCents += costCents;
 
+    const actual = item.actualCost !== undefined ? item.actualCost : cost;
+    totalActualCents += toCents(actual);
+
+    const paid = item.paidAmount || 0;
+    totalPaidCents += toCents(paid);
+
     if (item.confirmed) {
-      const actualCost = item.actualCost !== undefined ? item.actualCost : cost;
-      totalConfirmedCents += toCents(actualCost);
+      totalConfirmedCents += toCents(actual);
     }
 
     if (item.category in categoryBreakdownCents) {
@@ -115,10 +122,14 @@ export function calculateBudgetSummary(
 
   const totalEstimatedCost = fromCents(grandTotalCents);
   const perGuestCost = fromCents(Math.round(grandTotalCents / safeGuests));
+  const unpaidCents = Math.max(0, totalActualCents - totalPaidCents);
 
   return {
     totalBudget: safeBudget,
     totalEstimatedCost,
+    totalActualCost: fromCents(totalActualCents),
+    totalPaidAmount: fromCents(totalPaidCents),
+    totalUnpaidAmount: fromCents(unpaidCents),
     totalConfirmedCost: fromCents(totalConfirmedCents),
     remainingBudget: fromCents(remainingCents),
     utilizationPercentage,
@@ -236,6 +247,8 @@ export function generateSavingsSuggestions(
   return recommendations;
 }
 
+export const generateBudgetOptimizationRecommendations = generateSavingsSuggestions;
+
 /**
  * Compares two scenarios or plans deterministically.
  */
@@ -282,4 +295,3 @@ export function formatCurrency(amount: number, currency: string = 'USD'): string
     return `${currency} ${amount.toLocaleString()}`;
   }
 }
-
