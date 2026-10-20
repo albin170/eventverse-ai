@@ -1,0 +1,49 @@
+name: EventVerse AI CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  quality-gate:
+    name: Build, Lint, Test & Quality Gates
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: TypeScript Type Checking
+        run: npm run typecheck
+
+      - name: ESLint Linting Check
+        run: npm run lint
+
+      - name: Run Vitest Unit & Integration Tests
+        run: npm run test
+
+      - name: Run Automated Accessibility Checks (axe-core)
+        run: npm run test:a11y
+
+      - name: Production Vite Build
+        run: npm run build
+
+      - name: Verify Repository Size Budget (< 10MB)
+        run: |
+          REPO_SIZE_KB=$(du -sk --exclude='.git' . | cut -f1)
+          echo "Working tree size: ${REPO_SIZE_KB} KB"
+          if [ $REPO_SIZE_KB -gt 10240 ]; then
+            echo "ERROR: Working tree size exceeds 10MB budget gate!"
+            exit 1
+          fi
